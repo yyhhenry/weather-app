@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>weather-app of Group 15</title>
+        <style>
+            .mod{
+                margin:10px;
+                border-radius:10px;
+                box-shadow: 10px 10px 5px rgb(180,140,0);
+            }
+            .tips{
+                background-color: rgb(255, 239, 188);
+                margin-top: 15px;
+                margin-left: 5px;
+                margin-right: 5px;
+                padding: 10px;
+                border-color: rgb(255, 239, 188);
+                border-radius: 5px;
+                border-width: 5px;
+                border-style:solid;
+                box-shadow:none;
+            }
+            .tips:hover{
+                border-color: rgb(230,140,140);
+                border-style: solid;
+            }
+            .noselect {
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                -khtml-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+            }
+            body{
+                background: -webkit-linear-gradient(45deg, #fbd3e9, #dbc7cd);
+                background: linear-gradient(45deg, #fbd3e9, #dbc7cd);
+            }
+            .weatherImg{
+                border-radius: 25px;
+                padding:10px;
+                background-color: rgba(180,180,210,0.8);
+            }
+        </style>
+    </head>
+    <body>
+        <div id='theSameTimeButton' class="tips noselect" style="position:fixed;z-index:1;bottom:20px;right:220px">"The Same Time"</div>
+        <div style="line-height: 1.5;font-size: 12pt;overflow-y:auto;">
+            Group 15, VirtualTeam, weather APP<br>
+            Designer:严一涵 Yihan Yan<br>
+            <a style='position:fixed;right:15px;bottom:0px;z-index:2' href='https://www.seniverse.com' target='_blank'><img width='200' src='' alt='数据服务来自心知天气' id='dataSourceImg'/></a>
+        </div>
+        <div id="page"></div>
+        <div id="left1" class="mod" style="position:fixed;width:320px;left:0px;top:100px;bottom:20px;text-align: center;">
+            <div style="margin-top: 30px;">
+                <input id="searchingBox" type="text" value="" style="font-size: 22pt;width:80%;border-style: none;background-color: white;">
+            </div>
+            <div id="tips" style="line-height: 1.5;font-size: 20pt;overflow-y:auto;overflow-x:none;position: absolute;left:0px;right:0px">
+            </div>
+        </div>
+        <script type="text/javascript" src="crypto-js.js"></script>
+        <script type="text/javascript" src="hmac-sha1.js"></script>
+        <script type="text/javascript" src="cityName.js"></script>
+        <script type="text/javascript" src="cityNameEn.js"></script>
+        <script type="text/javascript" src="whiteImg.js"></script>
+        <script type="text/javascript" src="personalTips.js"></script>
+        <script type="text/javascript">
+            let searchMap={};
+            let getSearchMap=function(){
+                let str=location.search.substring(1).split('&');
+                searchingBox={};
+                for(let i=0;i<str.length;i++){
+                    let term=str[i].split('=');
+                    searchMap[decodeURI(term[0])]=decodeURI(term[1]);
+                }
+                console.log(searchMap);
+            }
+            let justGetTs=function(){
+                return Math.floor(new Date().getTime()/1000);
+            }
+            let getTs=function(){
+                let ts=justGetTs();
+                searchMap.ts=''+ts;
+                return ts;
+            }
+            let setSearchMap=function(){
+                let ans=[];
+                for(let i in searchMap){
+                    if(i==''||i==null||searchMap[i]==null||searchMap[i]=='')continue;
+                    ans.push(encodeURI(i)+'='+encodeURI(searchMap[i]));
+                }
+                location.search='?'+ans.join('&');
+            }
+            let showDaily=[];
+            let getDaily=function(city,lang,callback){
+                if(IDBase[city]!=city)return;
+                let offline={
+                    "results": [{
+                        "location": {
+                        "id": "WX4FBXXFKE4F",
+                        "name": "某地",
+                        "country": "CN",
+                        "path": "某地,某地,某省,中国",
+                        "timezone": "Asia/Shanghai",
+                        "timezone_offset": "+08:00"
+                        },
+                        "daily": [{                          //返回指定days天数的结果
+                        "date": "2021-10-03",              //日期
+                        "text_day": "多云",                //白天天气现象文字
+                        "code_day": "4",                  //白天天气现象代码
+                        "text_night": "晴",               //晚间天气现象文字
+                        "code_night": "0",                //晚间天气现象代码
+                        "high": "26",                     //当天最高温度
+                        "low": "17",                      //当天最低温度
+                        "precip": "0",                    //降水概率，范围0~100，单位百分比（目前仅支持国外城市）
+                        "wind_direction": "",             //风向文字
+                        "wind_direction_degree": "255",   //风向角度，范围0~360
+                        "wind_speed": "9.66",             //风速，单位km/h（当unit=c时）、mph（当unit=f时）
+                        "wind_scale": "",                 //风力等级
+                        "rainfall": "0.0",                //降水量，单位mm
+                        "humidity": "76"                  //相对湿度，0~100，单位为百分比
+                        }, {
+                        "date": "2015-09-21",
+                        "text_day": "晴",
+                        "code_day": "0",
+                        "text_night": "晴",
+                        "code_night": "0",
+                        "high": "27",
+                        "low": "17",
+                        "precip": "0",
+                        "wind_direction": "",
+                        "wind_direction_degree": "157",
+                        "wind_speed": "17.7",
+                        "wind_scale": "3",
+                        "rainfall": "0.0",
+                        "humidity": "76"
+                        }],
+                        "last_update": "2015-09-20T18:00:00+08:00" //数据更新时间（该城市的本地时间）
+                    }]
+                };
+                let ts=getTs();
+                let ttl=300;
+                let uid='PyMe1R6Bo7q1ugrWL';
+                let secret='SPw7ewlzfWygcVoRE';
+                let str=`ts=${ts}&ttl=${ttl}&uid=${uid}`;
+                let sig=encodeURIComponent(CryptoJS.HmacSHA1(str, secret).toString(CryptoJS.enc.Base64));
+                console.log(str,sig);
+                let ln=showDaily.length;
+                showDaily.push(function(json){
+                    callback(json);
+                });
+                if(location.href.indexOf('gitee')==-1){
+                    setTimeout(function(){
+                        callback(offline);
+                    },0);
+                    return;
+                }else{
+                    let url=`https://api.seniverse.com/v3/weather/daily.json?location=${city}&${str}&sig=${sig}&callback=showDaily[${ln}]&start=0&days=2${lang}`;
+                    let scriptRequest=document.createElement('script');
+                    scriptRequest.src=url;
+                    document.body.appendChild(scriptRequest);
+                }
+            }
+            let showWeather=[];
+            let getWeather=function(city,lang,callback){
+                if(IDBase[city]!=city)return;
+                let offline={
+                    "results":[
+                        {
+                            "location":{
+                                "id":city,
+                                "name":city,
+                                "country":"CN",
+                                "path":city+",中国",
+                                "timezone":"Asia/Shanghai",
+                                "timezone_offset":"+08:00"
+                            },
+                            "now":{
+                                "text":"雨夹雪",
+                                "code":"20",
+                                "temperature":"2"
+                            },
+                            "last_update":"yyyy-mm-ddThh:mm:ss +08:00"
+                        }
+                    ]
+                };
+                let ts=getTs();
+                let ttl=300;
+                let uid='PyMe1R6Bo7q1ugrWL';
+                let secret='SPw7ewlzfWygcVoRE';
+                let str=`ts=${ts}&ttl=${ttl}&uid=${uid}`;
+                let sig=encodeURIComponent(CryptoJS.HmacSHA1(str, secret).toString(CryptoJS.enc.Base64));
+                console.log(str,sig);
+                let ln=showWeather.length;
+                showWeather.push(function(json){
+                    callback(json);
+                });
+                if(location.href.indexOf('gitee')==-1){
+                    setTimeout(function(){
+                        callback(offline);
+                    },0);
+                    return;
+                }else{
+                    let url=`https://api.seniverse.com/v3/weather/now.json?location=${city}&${str}&sig=${sig}&callback=showWeather[${ln}]${lang}`;
+                    let scriptRequest=document.createElement('script');
+                    scriptRequest.src=url;
+                    document.body.appendChild(scriptRequest);
+                }
+            }
+            let stdError=function(str){
+                setTimeout(function(){
+                    console.log(str);
+                    alert(str);
+                },0);
+            }
+            let lastPaintTime=new Date().getTime();
+            let paintingLoop=function(){
+                let thisPaintTime=new Date().getTime();
+                let deltaTime=Math.min(300,thisPaintTime-lastPaintTime);
+                let color1=`rgb(240,${Math.floor(Math.sin(thisPaintTime/1200+2)*20)+210},${Math.floor(Math.sin(thisPaintTime/1600)*20)+210})`;
+                let color2=`rgb(210,${Math.floor(Math.sin(thisPaintTime/2000+2)*20)+210},${Math.floor(Math.sin(thisPaintTime/1400)*20)+210})`;
+                document.body.style.background=`linear-gradient(to right, ${color1}, ${color2})`;
+                lastPaintTime=thisPaintTime;
+                setTimeout(paintingLoop,20);
+            }
+            let lastSearching=null;
+            let searchingLoop=function(){
+                let tips=document.getElementById('tips');
+                let searchingBox=document.getElementById('searchingBox');
+                let value=searchingBox.value;
+                tips.style.top=30+searchingBox.offsetHeight+'px';
+                tips.style.bottom='10px';
+                if(value!=lastSearching){
+                    lastSearching=value;
+
+                    value=value.toLowerCase().split(' ').join('');
+                    let hastip=false;
+                    tips.innerHTML='';
+                    let addTip=function(text,path,id,lang){
+                        let div=document.createElement('div');
+                        div.className='tips noselect';
+                        div.innerText=text;
+                        let pathBox=document.createElement('div');
+                        pathBox.innerText=path.substring(path.lastIndexOf(text+',')+text.length+1,path.length);
+                        pathBox.style.fontSize='10pt';
+                        pathBox.style.color='gray';
+                        div.appendChild(pathBox);
+                        div.onclick=function(event){
+                            getTs();
+                            searchMap.city=id;
+                            searchMap.lang=(lang!=''?'en':'');
+                            setSearchMap();
+                        }
+                        tips.appendChild(div);
+                    }
+                    if(value!=''){
+                        for(let i=0;i<cityNameBase.length;i++){
+                            let nameMap=cityNameBase[i];
+                            if(nameMap.path.indexOf(value)!=-1){
+                                hastip=true;
+                                addTip(nameMap.name,nameMap.path,nameMap.id,'');
+                            }
+                        }
+                        for(let i=0;i<cityNameEnBase.length;i++){
+                            let nameMap=cityNameEnBase[i];
+                            if(nameMap.path.toLowerCase().split(' ').join('').indexOf(value)!=-1){
+                                hastip=true;
+                                addTip(nameMap.name,nameMap.path,nameMap.id,'&lang=en');
+                            }
+                        }
+                        if(!hastip){
+                            tips.innerText=(searchMap.lang=='en'?'No relevant information was found':'没有找到相关信息');
+                        }
+                    }else{
+                        tips.innerText=(searchMap.lang=='en'?'Both Chinese and English search are supported':'中英文搜索均可');
+                    }
+                }
+                setTimeout(searchingLoop,50);
+            }
+            window.onload=function(){
+                getSearchMap();
+                if(searchMap.city==null){
+                    searchMap.city='WWWV6YM1F4ZV';
+                    setSearchMap();
+                    return;
+                }
+                let city=searchMap.city;
+                let ts=justGetTs();
+                if(searchMap.ts==null||ts-parseInt(searchMap.ts)>60){
+                    getTs();
+                    setSearchMap();
+                    return;
+                }
+                let page=document.getElementById('page');
+                let theSameTimeButton=document.getElementById('theSameTimeButton');
+                theSameTimeButton.onclick=function(){
+                    if(searchMap.cityLast==null){
+                        searchMap.cityLast=searchMap.city;
+                    }else{
+                        searchMap.cityLast=null;
+                    }
+                    setSearchMap();
+                }
+                if(IDBase[city]!=city){
+                    stdError('invalid name');
+                }
+                let lang='';
+                if(searchMap.lang=='en'){
+                    lang='&language=en';
+                }
+                if(lang!='')console.log('In English');
+                dataSourceImg.src=(lang==''?whiteImg['icon.png']:whiteImg['iconEn.png']);
+                theSameTimeButton.innerText=(lang==''?'\"天涯共此时\"':'\"The Same Time\"');
+                setTimeout(searchingLoop,0);
+                setTimeout(paintingLoop,0);
+                (function(){
+                    page.innerHTML='';
+                    let mainBox=document.createElement('div');
+                    mainBox.style.position='fixed';
+                    mainBox.style.top='0px';
+                    mainBox.style.left='320px';
+                    mainBox.style.right='0px';
+                    mainBox.style.textAlign='center';
+                    mainBox.style.fontSize='32pt';
+                    mainBox.style.color='gray';
+                    mainBox.style.padding='50px';
+                    mainBox.innerText=(lang==''?`检索${city}中`:`Searching for ${city}`);
+                    page.appendChild(mainBox);
+                })();
+                let getDailyTheSameTime=function(city,mainBox,lang){
+                    getDaily(city,lang,function(value){
+                        console.log(value);
+                        if(value!=null&&value.results!=null){
+                            let p=value.results[0];
+                            if(p!=null&&p.location!=null&&p.daily!=null){
+                                let dailyText=(lang==''?['今天','明天']:['Today','Tomorrow']);
+                                for(let i=0;i<p.daily.length;i++){
+                                    let dayi=p.daily[i];
+                                    let pathBox=document.createElement('div');
+                                    pathBox.innerText='\n'+dailyText[i];
+                                    pathBox.style.fontSize='12pt';
+                                    mainBox.appendChild(pathBox);
+                                    let textBox=document.createElement('div');
+                                    textBox.innerText=(dayi.text_day!=dayi.text_night?`${dayi.text_day}~${dayi.text_night}`:dayi.text_day);
+                                    textBox.style.fontSize='14pt';
+                                    mainBox.appendChild(textBox);
+                                    let tempBox=document.createElement('div');
+                                    tempBox.innerText=`${dayi.low}~${dayi.high}℃`;
+                                    tempBox.style.fontSize='12pt';
+                                    mainBox.appendChild(tempBox);
+                                    let tipBox=document.createElement('div');
+                                    tipBox.innerText=calcForPersonalTips(dayi,lang);
+                                    tipBox.style.fontSize='12pt';
+                                    tipBox.style.color='rgb(130,60,60)';
+                                    tipBox.style.fontFamily='华文行楷';
+                                    tipBox.style.fontWeight='bold';
+                                    mainBox.appendChild(tipBox);
+                                }
+                            }else{
+                                stdError('Invalid data');
+                            }
+                        }else{
+                            stdError('Data not found');
+                        }
+                    })
+                }
+                let theSameTime=function(){
+                    if(searchMap.cityLast==null)return;
+                    let cityLast=searchMap.cityLast;
+                    if(IDBase[cityLast]!=cityLast)return;
+                    getWeather(cityLast,lang,function(value){
+                        console.log(value);
+                        if(value!=null&&value.results!=null){
+                            let p=value.results[0];
+                            if(p!=null&&p.location!=null&&p.now!=null){
+                                let mainBox=document.createElement('div');
+                                mainBox.className='noselect';
+                                mainBox.style.position='fixed';
+                                mainBox.style.zIndex='-1';
+                                mainBox.style.top='10px';
+                                mainBox.style.left='320px';
+                                mainBox.style.right='20px';
+                                mainBox.style.textAlign='right';
+                                mainBox.style.fontSize='24pt';
+                                mainBox.style.color='black';
+                                mainBox.style.padding='20px';
+                                mainBox.style.overflow='auto';
+                                mainBox.innerText=p.location.name;
+                                if(p.location.country!='CN'){
+                                    mainBox.innerText+='\n这里是中国神圣不可侵犯的领土!!\nThis is China\'s sacred and inviolable territory!!';
+                                }
+                                let textBox=document.createElement('div');
+                                textBox.innerText=p.now.text;
+                                mainBox.appendChild(textBox);
+                                let tempBox=document.createElement('div');
+                                tempBox.innerText=p.now.temperature+'℃';
+                                let imgBox=document.createElement('img');
+                                imgBox.className='weatherImg';
+                                imgBox.src=whiteImg[`${p.now.code}@1x.png`];
+                                mainBox.appendChild(tempBox);
+                                mainBox.appendChild(imgBox);
+                                page.appendChild(mainBox);
+                                mainBox.style.bottom='20px';
+                                mainBox.style.overflow='auto';
+                                getDailyTheSameTime(cityLast,mainBox,lang);
+                            }else{
+                                stdError('Invalid data');
+                            }
+                        }else{
+                            stdError('Data not found');
+                        }
+                    })
+                }
+                let getDailyPro=function(city,mainBox,lang){
+                    getDaily(city,lang,function(value){
+                        console.log(value);
+                        if(value!=null&&value.results!=null){
+                            let p=value.results[0];
+                            if(p!=null&&p.location!=null&&p.daily!=null){
+                                let dailyText=(lang==''?['今天','明天']:['Today','Tomorrow']);
+                                for(let i=0;i<p.daily.length;i++){
+                                    let dayi=p.daily[i];
+                                    let pathBox=document.createElement('div');
+                                    pathBox.innerText='\n'+dailyText[i];
+                                    pathBox.style.fontSize='14pt';
+                                    mainBox.appendChild(pathBox);
+                                    let textBox=document.createElement('div');
+                                    textBox.innerText=(dayi.text_day!=dayi.text_night?`${dayi.text_day}~${dayi.text_night}`:dayi.text_day);
+                                    textBox.style.fontSize='16pt';
+                                    mainBox.appendChild(textBox);
+                                    let tempBox=document.createElement('div');
+                                    tempBox.innerText=`${dayi.low}~${dayi.high}℃`;
+                                    tempBox.style.fontSize='16pt';
+                                    mainBox.appendChild(tempBox);
+                                    let tipBox=document.createElement('div');
+                                    tipBox.innerText=calcForPersonalTips(dayi,lang);
+                                    tipBox.style.fontSize='16pt';
+                                    tipBox.style.fontFamily='华文行楷';
+                                    tipBox.style.fontWeight='bold';
+                                    tipBox.style.textShadow='10px 10px 10px #de601090';
+                                    mainBox.appendChild(tipBox);
+                                    theSameTime();
+                                }
+                            }else{
+                                stdError('Invalid data');
+                            }
+                        }else{
+                            stdError('Data not found');
+                        }
+                    })
+                }
+                getWeather(city,lang,function(value){
+                    page.innerHTML='';
+                    console.log(value);
+                    if(value!=null&&value.results!=null){
+                        let p=value.results[0];
+                        if(p!=null&&p.location!=null&&p.now!=null){
+                            let mainBox=document.createElement('div');
+                            mainBox.className='noselect';
+                            mainBox.style.position='fixed';
+                            mainBox.style.zIndex='0';
+                            mainBox.style.top='0px';
+                            mainBox.style.left='320px';
+                            mainBox.style.right='0px';
+                            mainBox.style.textAlign='center';
+                            mainBox.style.fontSize='32pt';
+                            mainBox.style.color='black';
+                            mainBox.style.padding='50px';
+                            mainBox.innerText=p.location.name;
+                            let pathBox=document.createElement('div');
+                            if(p.location.country!='CN'){
+                                mainBox.innerText+='\n这里是中国神圣不可侵犯的领土!!\nThis is China\'s sacred and inviolable territory!!';
+                            }
+                            pathBox.innerText=p.location.path+'\n'+p.last_update+(lang==''?'的实时天气':'(Real-time-Weather)');
+                            pathBox.style.fontSize='14pt';
+                            pathBox.style.color='gray';
+                            mainBox.appendChild(pathBox);
+                            let textBox=document.createElement('div');
+                            textBox.innerText=p.now.text;
+                            mainBox.appendChild(textBox);
+                            let tempBox=document.createElement('div');
+                            tempBox.innerText=p.now.temperature+'℃';
+                            let imgBox=document.createElement('img');
+                            imgBox.className='weatherImg';
+                            imgBox.src=whiteImg[`${p.now.code}@2x.png`];
+                            mainBox.appendChild(tempBox);
+                            mainBox.appendChild(imgBox);
+                            page.appendChild(mainBox);
+                            mainBox.style.bottom='35px';
+                            mainBox.style.overflow='auto';
+                            getDailyPro(city,mainBox,lang);
+                        }else{
+                            stdError('Invalid data');
+                        }
+                    }else{
+                        stdError('Data not found');
+                    }
+                })
+            }
+        </script>
+    </body>
+</html>
